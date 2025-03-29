@@ -1,0 +1,36 @@
+# ---------------------------
+# PyCharm / JetBrains
+# ---------------------------
+.idea/
+*.iml
+/shelf/
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+# ---------------------------
+# Ambientes Virtuais Python
+# ---------------------------
+env/
+.venv/
+
+# ---------------------------
+# Arquivos Compilados Python
+# ---------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ---------------------------
+# Arquivos Temporários e Dados
+# ---------------------------
+*.zip
+downloads/
+
+# ---------------------------
+# Outros (opcional)
+# ---------------------------
+*.log
+.DS_Store

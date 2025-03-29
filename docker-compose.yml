@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql_server
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: elidiogiacon
+      MYSQL_DATABASE: banco_desafio
+      MYSQL_USER: elidiogiacon
+      MYSQL_PASSWORD: elidiogiacon
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
