@@ -34,3 +34,12 @@ downloads/
 # ---------------------------
 *.log
 .DS_Store
+
+# Arquivo de variáveis de ambiente (nunca versionar)
+.env
+
+# Arquivos de credenciais/dados sensíveis
+*.pem
+*.crt
+*.key
+*.bak

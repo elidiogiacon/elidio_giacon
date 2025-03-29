@@ -1,90 +1,128 @@
-# 📦 MySQL com Docker
+# 🧪 Desafio Técnico – IntuitiveCare
 
-Este projeto configura um container MySQL 8 utilizando Docker Compose, com credenciais e banco de dados já definidos para facilitar testes locais e provas técnicas.
+Este projeto foi desenvolvido como parte de uma prova técnica para a empresa **IntuitiveCare**.
 
----
+O objetivo principal é manipular e analisar dados de operadoras de saúde, estruturando-os em um banco de dados relacional (MySQL), com etapas automatizadas via Python, Docker e Makefile.
+
+## 📚 Índice
+
+- [📦 Infraestrutura Docker + MySQL](#-infraestrutura-docker--mysql)
+- [🚀 Como rodar](#-como-rodar)
+- [⚙️ Configuração](#-configuração)
+- [📂 Estrutura do Projeto](#-estrutura-do-projeto)
+- [🧩 Etapas do Desafio](#-etapas-do-desafio)
+- [🛠️ Comandos disponíveis (Makefile)](#️-comandos-disponíveis-makefile)
+- [✅ Teste de conexão](#-teste-de-conexão)
+- [📄 Licença](#-licença)
+
+## 📦 Infraestrutura Docker + MySQL
+
+Este projeto utiliza um container MySQL configurado com Docker Compose:
+
+```yaml
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql_server
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: elidiogiacon
+      MYSQL_DATABASE: banco_desafio
+      MYSQL_USER: elidiogiacon
+      MYSQL_PASSWORD: elidiogiacon
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+```
 
 ## 🚀 Como rodar
 
-### Pré-requisitos
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/install/) (já incluído no Docker Desktop)
+1. Suba o container MySQL:
+```bash
+docker-compose up -d
+```
 
-### Passos
+2. Instale as dependências do Python:
+```bash
+pip install -r requirements.txt
+```
 
-1. Clone ou baixe este repositório.
-2. Navegue até a pasta do projeto:
-   ```bash
-   cd desafio-mysql
-   ```
+3. Configure o arquivo `.env` com suas variáveis de conexão ao banco de dados.
 
-3. Inicie o container:
-   ```bash
-   docker-compose up -d
-   ```
-
-4. Pronto! O MySQL estará rodando localmente na porta `3306`.
-
----
+4. Execute os comandos via Makefile (ver abaixo).
 
 ## ⚙️ Configuração
 
-O container é configurado através do arquivo `docker-compose.yml`. As principais variáveis de ambiente utilizadas são:
+Crie um arquivo `.env` na raiz com os seguintes campos:
 
-| Variável             | Descrição                              | Valor configurado          |
-|----------------------|----------------------------------------|----------------------------|
-| `MYSQL_ROOT_PASSWORD`| Senha do usuário root do MySQL         | `elidiogiacon`             |
-| `MYSQL_DATABASE`     | Nome do banco de dados padrão criado   | `banco_desafio`            |
-| `MYSQL_USER`         | Usuário padrão criado                  | `elidiogiacon`             |
-| `MYSQL_PASSWORD`     | Senha do usuário padrão                | `elidiogiacon`             |
-
----
-
-## 🗃️ Persistência de dados
-
-Os dados do banco são persistidos através de um volume Docker chamado `mysql_data`, que armazena os arquivos em:
-
-```
-/var/lib/mysql
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=elidiogiacon
+MYSQL_PASSWORD=elidiogiacon
+MYSQL_DATABASE=intuitivecare_cadop
 ```
 
-Isso garante que os dados não sejam perdidos ao reiniciar o container.
-
----
-
-## 🧹 Como parar e remover
-
-Para parar e remover o container:
+## 📂 Estrutura do Projeto
 
 ```bash
-docker-compose down
+.
+├── docker-compose.yml
+├── .env
+├── scripts/
+│   ├── identify_fields.py
+│   ├── create_database_and_tables.py
+│   ├── etl_utils.py
+│   ├── scripts.sql
+│   ├── diff_log.txt
+├── etapa3/
+│   ├── Relatorio_cadop.csv
+│   ├── dicionario_de_dados_das_operadoras_ativas.ods
+├── Makefile
+├── requirements.txt
+└── README.md
 ```
 
-Para remover também os dados (volume):
+## 🧩 Etapas do Desafio
 
-```bash
-docker-compose down -v
-```
+### 🥇 Etapa 1
+- Acessar um site e baixar 2 arquivos `.pdf`.
+- Compactar ambos em um `.zip` com o nome do candidato.
 
----
+### 🥈 Etapa 2
+- Ler um dos PDFs baixados.
+- Identificar e extrair tabelas.
+- Salvar as tabelas em um arquivo `.csv`, corrigindo abreviações.
+
+### 🥉 Etapa 3 (atual)
+- Ler o dicionário de dados (`.ods`) e o relatório (`.csv`)
+- Gerar um script `CREATE TABLE` conforme o dicionário
+- Verificar divergências entre colunas
+- Criar o banco e as tabelas automaticamente no MySQL
+
+## 🛠️ Comandos disponíveis (Makefile)
+
+| Comando        | Descrição                                     |
+|----------------|-----------------------------------------------|
+| `make run`     | Executa o script de geração do SQL            |
+| `make db`      | Cria o banco e as tabelas no MySQL            |
+| `make sql`     | Exibe o conteúdo do script SQL gerado         |
+| `make diff`    | Mostra as diferenças entre CSV e dicionário   |
+| `make clean`   | Remove arquivos temporários (`.sql`, `.txt`)  |
 
 ## ✅ Teste de conexão
 
-Você pode testar a conexão com ferramentas como:
-- DBeaver
-- MySQL Workbench
-- MySQL CLI
-
-Utilize as seguintes informações:
-
-- **Host:** `localhost`
-- **Porta:** `3306`
-- **Usuário:** `elidiogiacon`
-- **Senha:** `elidiogiacon`
-- **Banco:** `banco_desafio`
-
----
+- Acesse o container ou use um cliente MySQL para testar:
+```bash
+mysql -u elidiogiacon -p -h 127.0.0.1 -P 3306
+```
+- **Banco:** `intuitivecare_cadop`
 
 ## 📄 Licença
 
-Este projeto é livre para uso em testes, entrevistas e aprendizado.
+Uso exclusivo para fins de avaliação técnica.
