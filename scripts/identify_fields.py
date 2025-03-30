@@ -1,81 +1,88 @@
 import os
+import sys
+import logging
+from pathlib import Path
 import pandas as pd
-from etl_utils import (
+
+from scripts.etl_utils import (
     normalizar_texto,
     gerar_create_table,
     verificar_diferencas,
     exportar_log_diferencas
 )
 
-# === CONFIGURAÇÕES ===
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DIR_SAIDA = os.path.join(BASE_DIR, "..", "scripts")
-os.makedirs(DIR_SAIDA, exist_ok=True)
+def detectar_inicio_tabela(path: Path) -> pd.DataFrame:
+    """Tenta identificar automaticamente a primeira linha da tabela no dicionário de dados."""
+    logging.info(f"🔍 Detectando início da tabela no dicionário: {path.name}")
+    preview = pd.read_excel(path, engine="odf", header=None, nrows=20)
+    for i, row in preview.iterrows():
+        valores = [str(v).strip() for v in row if pd.notna(v)]
+        if any("campo" in normalizar_texto(val) for val in valores):
+            logging.info(f"✅ Cabeçalho detectado na linha {i}: {valores}")
+            df = pd.read_excel(path, engine="odf", header=i)
+            return df
+    raise ValueError("❌ Cabeçalho da tabela não encontrado no dicionário.")
 
-CAMINHO_DICIONARIO = os.path.join(BASE_DIR, "..", "etapa3", "dicionario_de_dados_das_operadoras_ativas.ods")
-CAMINHO_CSV = os.path.join(BASE_DIR, "..", "etapa3", "Relatorio_cadop.csv")
-ARQUIVO_SQL_SAIDA = os.path.join(DIR_SAIDA, "scripts.sql")
-LOG_PATH = os.path.join(DIR_SAIDA, "diff_log.txt")
-NOME_TABELA = "operadoras_ativas"
+# === LOG CONFIG ===
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Substituições manuais: assumimos que essas colunas são equivalentes
-ALIAS_MAP = {
-    "registro_ans": "registro_operadora"
+# === CAMINHOS PADRÃO ===
+BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BASE_DIR.parent
+INPUT_DIR = ROOT_DIR / "input"
+OUTPUT_DIR = ROOT_DIR / "output"
+LOG_DIR = OUTPUT_DIR / "logs"
+SQL_DIR = OUTPUT_DIR / "sql"
+
+CAMINHO_DICIONARIO = INPUT_DIR / "dicionario_de_dados_das_operadoras_ativas.ods"
+CAMINHO_CSV = INPUT_DIR / "Relatorio_cadop.csv"
+
+LOG_PATH = LOG_DIR / "diff_log.txt"
+ARQUIVO_SQL_SAIDA = SQL_DIR / "scripts.sql"
+
+# === GARANTIR DIRETÓRIOS DE SAÍDA ===
+for d in [LOG_DIR, SQL_DIR]:
+    d.mkdir(parents=True, exist_ok=True)
+
+# === CONFIGURAÇÕES DE ALIAS DE COLUNAS ===
+ALIASES = {
+    "registro_ans": "registro_operadora",
+    "numero": "número"
 }
 
 def main():
-    # === LEITURA DO DICIONÁRIO ===
-    dicionario_df = pd.read_excel(CAMINHO_DICIONARIO, engine="odf", skiprows=6)
-    dicionario_df.dropna(how="all", inplace=True)
+    logging.info("🚀 Iniciando identificação de campos...")
 
-    dicionario_df.columns = (
-        dicionario_df.columns
-        .str.strip()
-        .str.lower()
-        .str.replace(r"\s+", "_", regex=True)
+    df_dic = detectar_inicio_tabela(CAMINHO_DICIONARIO)
+    df_csv = pd.read_csv(CAMINHO_CSV, encoding="latin1", sep=";")
+
+    # === DETECÇÃO ROBUSTA DA COLUNA PRINCIPAL ===
+    coluna_nome = next(
+        (col for col in df_dic.columns if "nome" in col.lower() and "campo" in col.lower()),
+        None
     )
 
-    if "nome_do_campo" not in dicionario_df.columns:
-        print("❌ Coluna 'nome_do_campo' não encontrada. Colunas disponíveis:")
-        print(dicionario_df.columns.tolist())
-        return
+    if not coluna_nome:
+        raise ValueError("❌ Coluna com nome do campo não encontrada no dicionário de dados.")
 
-    # === LEITURA E AJUSTE DO CSV ===
-    csv_df = pd.read_csv(CAMINHO_CSV, sep=None, engine="python")
-    csv_df.rename(columns=ALIAS_MAP, inplace=True)
+    colunas_dic = set(normalizar_texto(col) for col in df_dic[coluna_nome])
+    colunas_csv = set(normalizar_texto(col) for col in df_csv.columns)
 
-    csv_columns = set(normalizar_texto(col) for col in csv_df.columns)
-    dic_columns = set(normalizar_texto(col) for col in dicionario_df["nome_do_campo"])
+    colunas_csv_ajustadas = {ALIASES.get(col, col) for col in colunas_csv}
 
-    # === VERIFICA DIFERENÇAS ===
-    faltando, extras = verificar_diferencas(dic_columns, csv_columns)
+    faltando, extras = verificar_diferencas(colunas_dic, colunas_csv_ajustadas)
+    exportar_log_diferencas(LOG_PATH, faltando, extras, ALIASES)
 
-    # === GERA E EXPORTA SQL ===
-    ddl = gerar_create_table(dicionario_df, NOME_TABELA)
+    logging.info(f"📄 Log de diferenças salvo em: {LOG_PATH}")
+
+    nome_tabela = "cadastro_operadoras"
+    sql = gerar_create_table(df_dic, nome_tabela)
+
     with open(ARQUIVO_SQL_SAIDA, "w", encoding="utf-8") as f:
-        f.write(f"-- Script gerado automaticamente\n\n{ddl}\n")
-    print("\n✅ CREATE TABLE exportado para:", ARQUIVO_SQL_SAIDA)
+        f.write(sql)
 
-    # === LOG NO CONSOLE ===
-    print("\n📌 Diferenças detectadas entre CSV e Dicionário de Dados:\n")
-    if faltando:
-        print("⚠️  Colunas no dicionário mas ausentes no CSV:")
-        for col in sorted(faltando):
-            print(f"  - {col}")
-    else:
-        print("✅ Todas as colunas do dicionário estão presentes no CSV.")
-
-    if extras:
-        print("\n⚠️  Colunas no CSV mas que não existem no dicionário:")
-        for col in sorted(extras):
-            print(f"  - {col}")
-    else:
-        print("✅ Nenhuma coluna extra no CSV.")
-
-    # === LOG EM ARQUIVO ===
-    exportar_log_diferencas(LOG_PATH, faltando, extras, ALIAS_MAP)
-    print("\n📝 Log de diferenças salvo em:", LOG_PATH)
-
+    logging.info(f"📜 Script SQL salvo em: {ARQUIVO_SQL_SAIDA}")
+    logging.info("✅ Etapa 3.1 finalizada com sucesso.")
 
 if __name__ == "__main__":
     main()

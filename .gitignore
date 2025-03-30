@@ -27,7 +27,8 @@ __pycache__/
 # Arquivos Temporários e Dados
 # ---------------------------
 *.zip
-downloads/
+input
+output
 
 # ---------------------------
 # Outros (opcional)

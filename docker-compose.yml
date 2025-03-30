@@ -8,11 +8,12 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: elidiogiacon
-      MYSQL_DATABASE: banco_desafio
+      MYSQL_DATABASE: intuitivecare_cadop
       MYSQL_USER: elidiogiacon
       MYSQL_PASSWORD: elidiogiacon
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
 volumes:
   mysql_data:

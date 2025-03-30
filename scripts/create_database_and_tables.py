@@ -1,3 +1,4 @@
+from pathlib import Path
 from dotenv import load_dotenv
 import os
 import mysql.connector
@@ -12,8 +13,8 @@ MYSQL_CONFIG = {
     "password": os.getenv("MYSQL_PASSWORD"),
 }
 
+CAMINHO_SQL = Path(__file__).resolve().parent.parent / "output" / "sql" / "scripts.sql"
 NOME_BANCO = os.getenv("MYSQL_DATABASE")
-CAMINHO_SQL = os.path.join(os.path.dirname(__file__), "scripts.sql")
 
 
 def criar_banco(cursor, nome_banco):
