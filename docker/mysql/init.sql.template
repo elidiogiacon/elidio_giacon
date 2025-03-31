@@ -1,0 +1,11 @@
+-- Criação do banco de dados
+CREATE DATABASE IF NOT EXISTS {MYSQL_DATABASE};
+
+-- Criação do usuário
+CREATE USER IF NOT EXISTS '{MYSQL_USER}'@'%' IDENTIFIED BY '{MYSQL_PASSWORD}';
+
+-- Permissões para o banco
+GRANT ALL PRIVILEGES ON {MYSQL_DATABASE}.* TO '{MYSQL_USER}'@'%';
+
+-- Aplica as permissões
+FLUSH PRIVILEGES;

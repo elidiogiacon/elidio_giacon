@@ -6,6 +6,11 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from zipfile import ZipFile
 from dotenv import load_dotenv
+from scripts.etl_utils import setup_logger
+logger = setup_logger(__name__, console=True)
+
+logger.info('🚀 Iniciando script...')
+
 
 # === CONFIGURAÇÕES ===
 load_dotenv()

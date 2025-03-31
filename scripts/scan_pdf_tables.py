@@ -2,6 +2,11 @@
 import pdfplumber
 from pathlib import Path
 import logging
+from scripts.etl_utils import setup_logger
+logger = setup_logger(__name__, console=True)
+
+logger.info('🚀 Iniciando script...')
+
 
 def detectar_paginas_com_tabelas(pdf_path: Path) -> list[int]:
     paginas_validas = []

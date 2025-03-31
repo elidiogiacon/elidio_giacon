@@ -1,57 +1,81 @@
+
 import os
 import pandas as pd
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
+from scripts.etl_utils import setup_logger, carregar_truncamentos_do_arquivo
+from pathlib import Path
+from tqdm import tqdm
 
-# Carrega variáveis do .env
+# Carrega variáveis de ambiente e logger
 load_dotenv()
+logger = setup_logger("import_csv_to_mysql")
 
-MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST"),
-    "port": os.getenv("MYSQL_PORT"),
-    "user": os.getenv("MYSQL_USER"),
-    "password": os.getenv("MYSQL_PASSWORD"),
-    "database": os.getenv("MYSQL_DATABASE"),
-}
+MYSQL_USER = os.getenv("MYSQL_USER")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+MYSQL_HOST = os.getenv("MYSQL_HOST")
+MYSQL_PORT = os.getenv("MYSQL_PORT")
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
 
-CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "input", "Relatorio_cadop.csv")
-TABLE_NAME = "cadastro_operadoras"
-
+CSV_PATH = Path("input/Relatorio_cadop.csv")
 
 def importar_csv_para_mysql():
-    print(f"📥 Lendo CSV: {CSV_PATH}")
-    try:
-        df = pd.read_csv(CSV_PATH, sep=";", encoding="latin1")
-    except Exception as e:
-        print(f"❌ Erro ao ler o CSV: {e}")
+    if not CSV_PATH.exists():
+        logger.error(f"Arquivo não encontrado: {CSV_PATH}")
         return
 
-    # Altere os nomes das colunas para que coincidam com os da tabela.
-    # Exemplo: se a tabela foi criada com todas as colunas em minúsculas:
-    df.columns = [col.strip().lower() for col in df.columns]
+    logger.info("🚀 Iniciando importação do CSV para o MySQL...")
 
-    # Se houver diferenças específicas, crie um mapeamento:
-    # mapping = {"registro_ans": "registro_ans", "cnpj": "cnpj", ...}
-    # df = df.rename(columns=mapping)
+    # Importar o CSV com todos os campos como texto
+    df = pd.read_csv(CSV_PATH, sep=";", encoding="utf-8", dtype=str)
+    logger.info(f"CSV lido com {df.shape[0]} linhas e {df.shape[1]} colunas.")
 
-    # Cria a conexão usando SQLAlchemy
-    engine = create_engine(
-        f"mysql+mysqlconnector://{MYSQL_CONFIG['user']}:{MYSQL_CONFIG['password']}"
-        f"@{MYSQL_CONFIG['host']}:{MYSQL_CONFIG['port']}/{MYSQL_CONFIG['database']}"
-    )
+    # Normalizar colunas
+    df.columns = [col.lower().strip().replace(" ", "_") for col in df.columns]
 
+    # Renomear registro_ans para registro_operadora para manter padronização
+    if "registro_ans" in df.columns:
+        df = df.rename(columns={"registro_ans": "registro_operadora"})
+
+    # Garantir que todos os campos estejam como string e sem espaços
+    df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else x)
+
+    # Carregar truncamentos do arquivo JSON
     try:
-        df.to_sql(
-            name=TABLE_NAME,
-            con=engine,
-            if_exists='append',  # Insere os dados na tabela existente
-            index=False,
-            chunksize=5000  # Útil para arquivos grandes
-        )
-        print("✅ Dados inseridos com sucesso.")
+        truncamentos = carregar_truncamentos_do_arquivo()
     except Exception as e:
-        print(f"❌ Erro ao inserir dados: {e}")
+        logger.warning(f"⚠️ Não foi possível carregar truncamentos: {e}")
+        truncamentos = {}
 
+    for coluna, tamanho in truncamentos.items():
+        if coluna in df.columns:
+            df[coluna] = df[coluna].astype(str).str.slice(0, tamanho)
+            logger.info(f"✂️ Truncando coluna '{coluna}' para {tamanho} caracteres.")
+
+    engine_str = f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+    engine = create_engine(engine_str)
+
+    chunksize = 10000
+    total_rows = len(df)
+    total_chunks = (total_rows // chunksize) + int(total_rows % chunksize > 0)
+
+    for i in tqdm(range(total_chunks), desc="📤 Inserindo chunks"):
+        start = i * chunksize
+        end = min((i + 1) * chunksize, total_rows)
+        chunk = df.iloc[start:end]
+        logger.info(f"📦 Inserindo chunk {i + 1}/{total_chunks} ({start}:{end})")
+        chunk.to_sql(
+            "cadastro_operadoras",
+            con=engine,
+            if_exists="append" if i > 0 else "replace",
+            index=False,
+            method="multi"
+        )
+
+    logger.info("✅ CSV importado com sucesso para a tabela 'cadastro_operadoras'!")
+
+def main():
+    importar_csv_para_mysql()
 
 if __name__ == "__main__":
-    importar_csv_para_mysql()
+    main()

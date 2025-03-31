@@ -10,103 +10,139 @@ export PYTHONPATH = $(ROOT)
 # Etapa 1 - Web Scraping
 # =========================
 etapa1:
-	@echo "🌐 Executando Etapa 1 - Download e Compactação de Anexos..."
+	@echo "🌐 Etapa 1 - Download e Compactação de Anexos da ANS"
 	$(PYTHON) -m $(SCRIPTS_DIR).download_anexos
 
 # =========================
 # Etapa 2 - Transformação de Dados
 # =========================
 etapa2:
-	@echo "📄 Executando Etapa 2 - Extração de Tabelas do PDF..."
+	@echo "📄 Etapa 2 - Extração e Limpeza de Tabelas do PDF"
 	$(PYTHON) -m $(SCRIPTS_DIR).extract_tables
 
 # =========================
-# Etapa 3.1 - Identificação de Campos
+# Etapa 3.0 - Coleta de Dados Complementares
+# =========================
+etapa3-downloader:
+	@echo "📥 Etapa 3.0 - Download de Dados da ANS (CADOP + Demonstrativos Contábeis)"
+	$(PYTHON) -m $(SCRIPTS_DIR).download_dados_operadoras
+	$(PYTHON) -m $(SCRIPTS_DIR).download_demonstracoes_contabeis
+
+# =========================
+# Etapa 3.1 - Validação e Identificação de Campos
 # =========================
 etapa3-identify:
-	@echo "🧠 Executando Etapa 3.1 - Verificando estrutura de campos..."
+	@echo "🧠 Etapa 3.1 - Análise do Dicionário e CSV de Operadoras"
 	$(PYTHON) -m $(SCRIPTS_DIR).identify_fields
 
 # =========================
-# Etapa 3.2 - Criação do Banco e Tabela
+# Etapa 3.2 - Criação do Banco de Dados e Tabelas
 # =========================
 etapa3-db:
-	@echo "🏗️ Executando Etapa 3.2 - Criando banco e tabela no MySQL..."
+	@echo "🏗️ Etapa 3.2 - Criação de banco e execução do script SQL"
 	$(PYTHON) -m $(SCRIPTS_DIR).create_database_and_tables
 
 # =========================
-# Etapa 3.3 - Importação do CSV para o MySQL
+# Etapa 3.3 - Importação de Dados no MySQL
 # =========================
 etapa3-import:
-	@echo "📥 Executando Etapa 3.3 - Importando CSV para o MySQL..."
+	@echo "📤 Etapa 3.3 - Importação do CSV para a tabela MySQL"
 	$(PYTHON) -m $(SCRIPTS_DIR).import_csv_to_mysql
 
 # =========================
-# Etapa 4 - API (placeholder)
+# Etapa 3.4 - Processamento de Despesas Contábeis
 # =========================
-etapa4-api:
-	@echo "🔧 Executando Etapa 4 - Backend/Frontend em desenvolvimento..."
+etapa3-despesas:
+	@echo "📊 Etapa 3.4 - Processamento das Despesas Contábeis"
+	$(PYTHON) -m $(SCRIPTS_DIR).processar_despesas
+	$(PYTHON) -m $(SCRIPTS_DIR).import_despesas_to_mysql
 
 # =========================
-# Scanner de páginas com tabelas no PDF
+# Etapa 4 - API & Frontend (Em Desenvolvimento)
+# =========================
+etapa4-api:
+	@echo "🔧 Etapa 4 - Backend e Frontend ainda em desenvolvimento"
+
+# =========================
+# Scanner de Páginas com Tabelas (PDF)
 # =========================
 scan:
-	@echo "🔎 Executando Scanner de Páginas com Tabelas no PDF..."
+	@echo "🔎 Scanner de Tabelas no PDF (Etapa Extra)"
 	$(PYTHON) -m $(SCRIPTS_DIR).scan_pdf_tables
 
 # =========================
-# Ver conteúdo SQL gerado
+# Visualização
 # =========================
 sql:
-	@echo "📜 Conteúdo do scripts.sql:"
+	@echo "📜 Visualizando conteúdo do scripts.sql"
 	@cat output/sql/scripts.sql
 
-# =========================
-# Ver diferenças CSV vs Dicionário
-# =========================
 diff:
-	@echo "🔍 Diferenças detectadas entre CSV e Dicionário:"
+	@echo "📋 Diferenças entre o dicionário de dados e o CSV"
 	@cat output/logs/diff_log.txt
 
 # =========================
-# Limpar arquivos gerados
+# Limpeza
 # =========================
 clean:
-	@echo "🧹 Limpando arquivos gerados..."
+	@echo "🧹 Limpando arquivos gerados durante a execução"
 	@rm -f output/sql/scripts.sql
-	@rm -f output/logs/diff_log.txt
-	@rm -f output/logs/etapa2_failures.log
+	@rm -f output/logs/*.log
 	@rm -f output/csv/*.csv
 	@rm -f output/zips/*.zip
 	@rm -f output/anexos/*.pdf
 
 # =========================
-# Resetar o banco de dados (MySQL)
+# Banco de Dados - Reset Total
 # =========================
 db-reset:
-	@echo "🔁 Resetando o banco de dados e volume do MySQL..."
+	@echo "🔁 Resetando container e volume do banco MySQL (Docker)"
 	docker-compose down -v
 	docker-compose up -d
 
 # =========================
-# Rodar todas as etapas
+# Geração Automática do init.sql a partir do .env
 # =========================
-all: etapa1 etapa2 etapa3-identify etapa3-db etapa3-import
+init-sql:
+	@echo "⚙️ Gerando docker/mysql/init.sql baseado no .env..."
+	$(PYTHON) generate_init_sql.py
+
+# =========================
+# Execução Total
+# =========================
+all: etapa1 etapa2 etapa3-downloader etapa3-identify etapa3-db etapa3-import etapa3-despesas
+
+all-clean: clean db-reset init-sql all
+
+# =========================
+# Verificação de Pré-Requisitos
+# =========================
+check:
+	@echo "🔍 Verificando pré-requisitos do ambiente..."
+	@test -f .env || (echo '❌ Arquivo .env não encontrado!' && exit 1)
+	@test -f docker-compose.yml || (echo '❌ docker-compose.yml não encontrado!' && exit 1)
+	@mkdir -p output/logs output/csv output/sql output/zips output/anexos || true
+	@echo '✅ Ambiente verificado com sucesso.'
 
 # =========================
 # Ajuda
 # =========================
 help:
 	@echo "🛠️ Comandos disponíveis:"
-	@echo "  make etapa1           → Baixa PDFs e gera ZIP (Etapa 1)"
-	@echo "  make etapa2           → Extrai tabelas do PDF, gera CSV e ZIP (Etapa 2)"
-	@echo "  make etapa3-identify  → Verifica campos e gera scripts.sql (Etapa 3.1)"
-	@echo "  make etapa3-db        → Cria banco e tabelas no MySQL (Etapa 3.2)"
-	@echo "  make etapa3-import    → Importa dados do CSV para o MySQL (Etapa 3.3)"
-	@echo "  make etapa4-api       → (placeholder) Rota de API com busca textual (Etapa 4)"
-	@echo "  make scan             → Detecta páginas com tabelas no PDF"
-	@echo "  make sql              → Mostra conteúdo do SQL"
-	@echo "  make diff             → Mostra diferenças entre CSV e Dicionário"
-	@echo "  make clean            → Remove arquivos temporários"
-	@echo "  make all              → Executa todas as etapas anteriores"
-	@echo "  make db-reset         → Remove volume do MySQL e reinicia container"
+	@echo "  make check              → Verifica estrutura mínima do projeto"
+	@echo "  make init-sql           → Gera docker/mysql/init.sql a partir do .env"
+	@echo "  make etapa1             → Baixa PDFs da ANS e gera ZIP"
+	@echo "  make etapa2             → Extrai e transforma tabelas do PDF"
+	@echo "  make etapa3-downloader  → Baixa arquivos CADOP e .zip da ANS"
+	@echo "  make etapa3-identify    → Valida estrutura CSV com dicionário"
+	@echo "  make etapa3-db          → Cria banco de dados com base no .sql"
+	@echo "  make etapa3-import      → Importa dados do CSV para MySQL"
+	@echo "  make etapa3-despesas    → Processa e importa despesas contábeis"
+	@echo "  make etapa4-api         → Inicia construção da API + Frontend"
+	@echo "  make scan               → Escaneia PDF para detectar páginas com tabelas"
+	@echo "  make sql                → Exibe o script SQL gerado"
+	@echo "  make diff               → Mostra diferenças entre CSV e Dicionário"
+	@echo "  make clean              → Remove arquivos temporários"
+	@echo "  make db-reset           → Reseta o volume Docker e reinicia o MySQL"
+	@echo "  make all                → Executa todas as etapas do projeto"
+	@echo "  make all-clean          → Limpa tudo e executa o pipeline completo"
