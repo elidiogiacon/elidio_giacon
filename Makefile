@@ -58,10 +58,22 @@ etapa3-despesas:
 	$(PYTHON) -m $(SCRIPTS_DIR).import_despesas_to_mysql
 
 # =========================
-# Etapa 4 - API & Frontend (Em Desenvolvimento)
+# Etapa 4 - Visualização (API + Frontend)
 # =========================
+
 etapa4-api:
-	@echo "🔧 Etapa 4 - Backend e Frontend ainda em desenvolvimento"
+	@echo "🚀 Iniciando API com FastAPI (localhost:8000)"
+	cd api && uvicorn main:app --reload
+
+etapa4-frontend:
+	@echo "🎨 Iniciando Frontend Vue (localhost:5173)"
+	cd frontend && npm run dev
+
+etapa4:
+	@echo "🌐 Etapa 4 - Executando API e Frontend (paralelamente)"
+	(cd api && uvicorn main:app --reload) & \
+	(cd frontend && npm run dev) & \
+	wait
 
 # =========================
 # Scanner de Páginas com Tabelas (PDF)

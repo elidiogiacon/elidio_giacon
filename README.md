@@ -64,15 +64,25 @@ make etapa3-db
 make etapa3-import
 ```
 
+### 🚧 Etapa 3.5 - Query Analítica
+
+Por limitação de tempo (semana de provas na faculdade + jornada atual de trabalho de 40h), **não consegui concluir a query analítica solicitada**.
+
+No entanto, a estrutura de banco e o dataset estão prontos para que ela seja desenvolvida com facilidade, conforme o enunciado do desafio.
+
+Caso seja relevante para a avaliação, fico à disposição para desenvolver a consulta caso me concedam prazo adicional de 1 dia.
+
+Agradeço pela compreensão.
+
 ---
 
 ### ⏳ Etapa 4 - API com Vue.js + Python
 - Backend com busca textual (Python)
 - Frontend em Vue.js
-- (⚠️ Em planejamento)
 
 ```bash
-make etapa4-api
+make etapa4-api     # Inicia a API FastAPI (porta 8000)
+make etapa4-front   # Abre a interface Vue no navegador (porta 5173)
 ```
 
 ---
@@ -121,22 +131,31 @@ make clean
 ## 🧭 Organização do Projeto
 
 ```
-.
-├── scripts/              # Scripts Python (modulares)
+├── scripts/                # Scripts Python (ETL)
+├── api/                   # FastAPI backend
+│   ├── main.py            # Ponto de entrada da API
+│   ├── routes/            # Rotas da API
+│   ├── services/          # Lógicas de negócio
+│   └── models/            # Estruturas de dados
+├── frontend/              # Aplicação Vue.js (Vite)
+│   ├── index.html         # Entrada do app
+│   ├── src/               # Código-fonte Vue (composables, views, etc.)
+│   └── vite.config.js     # Configuração do Vite
 ├── output/
-│   ├── anexos/           # PDFs extraídos
-│   ├── csv/              # Arquivos gerados
-│   ├── logs/             # Logs da execução
-│   ├── zips/             # ZIPs nomeados
-│   └── sql/              # Scripts .sql gerados
-├── input/                # Arquivos CADOP, ODS e .zip externos
+│   ├── anexos/            # PDFs extraídos
+│   ├── csv/               # Arquivos gerados
+│   ├── logs/              # Logs da execução
+│   ├── zips/              # ZIPs nomeados
+│   └── sql/               # Scripts .sql gerados
+├── input/                 # Arquivos CADOP, ODS e .zip externos
 ├── docker/
-│   └── mysql/init.sql    # Script inicial do Docker
-├── docker-compose.yml    # Docker MySQL 8
-├── tests/                # Testes locais e manuais
-├── Makefile              # Automação das etapas
-├── .env                  # Configurações locais (não versionado)
-├── .env.example          # Modelo de variáveis padrão
+│   └── mysql/init.sql     # Script inicial do banco
+├── docker-compose.yml     # Docker MySQL 8
+├── tests/                 # Testes com Pytest
+├── Makefile               # Automação das etapas
+├── .env                   # Configurações locais (não versionado)
+├── .env.example           # Modelo base
+└── README.md              # Este arquivo
 ```
 
 ---
@@ -162,6 +181,17 @@ LOG_LEVEL=INFO
 ```
 
 ---
+
+## ⚠️ Nota técnica:
+
+A API atual carrega o CSV em memória, o que é adequado para testes e protótipos locais. Estou ciente de que essa abordagem pode não escalar bem em produção.
+
+Optei por essa implementação por conta da concorrência com atual trabalho, semana de provas na faculdade e prazo reduzido.
+
+Se tivesse mais um dia, faria a migração para uma busca via banco de dados com consultas otimizadas, chunked reads ou Redis.
+
+Ainda assim, todas as decisões foram conscientes e justificadas dentro do escopo e tempo proposto.
+
 
 ## 👨‍💻 Autor
 
