@@ -1,46 +1,72 @@
-# ---------------------------
-# PyCharm / JetBrains
-# ---------------------------
+# ============================
+# 🧠 IDEs e Configurações Locais
+# ============================
 .idea/
 *.iml
 /shelf/
-/workspace.xml
+.workspace.xml
 /httpRequests/
 /dataSources/
 /dataSources.local.xml
 
-# ---------------------------
-# Ambientes Virtuais Python
-# ---------------------------
+.vscode/*
+!.vscode/extensions.json
+
+# ============================
+# 🐍 Ambientes Virtuais Python
+# ============================
 env/
 .venv/
 
-# ---------------------------
-# Arquivos Compilados Python
-# ---------------------------
+# ============================
+# 🐍 Arquivos Compilados Python
+# ============================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# ---------------------------
-# Arquivos Temporários e Dados
-# ---------------------------
-*.zip
-input
-output
-
-# ---------------------------
-# Outros (opcional)
-# ---------------------------
+# ============================
+# 🧪 Testes e Logs
+# ============================
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================
+# 📁 Arquivos Temporários e Dados
+# ============================
+*.zip
+input/
+output/
+*.bak
 .DS_Store
 
-# Arquivo de variáveis de ambiente (nunca versionar)
+# ============================
+# 🔐 Variáveis de Ambiente e Credenciais
+# ============================
 .env
-
-# Arquivos de credenciais/dados sensíveis
 *.pem
 *.crt
 *.key
-*.bak
+*.local
+
+# ============================
+# 🌐 Node / Frontend (Vue)
+# ============================
+node_modules/
+dist/
+dist-ssr/
+
+# ============================
+# 🧱 Arquivos de Solução / Projeto (VS, etc)
+# ============================
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
