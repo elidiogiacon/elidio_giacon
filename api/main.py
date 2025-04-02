@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # === Carrega o CSV uma vez ===
-CADASTRO_PATH = Path("input/Relatorio_cadop.csv")
+CADASTRO_PATH = Path(__file__).resolve().parent.parent / "input" / "Relatorio_cadop.csv"
 
 CAMPO_BUSCA = "razao_social"
 df_operadoras = pd.read_csv(CADASTRO_PATH, sep=";", encoding="utf-8")
